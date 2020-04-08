@@ -1,5 +1,7 @@
 package com.rasterfoundry.conveyor
 
+import com.rasterfoundry.conveyor.programs.NewProjectProgram
+
 import cats.effect._
 import cats.implicits._
 
@@ -24,11 +26,15 @@ object HelloWorld
         case Commands.SayGoodbye(user, sad) =>
           IO {
             println(s"Goodbye, $user" ++ (if (sad) {
-                                             " :("
-                                           } else {
-                                             ""
-                                           }))
+                                            " :("
+                                          } else {
+                                            ""
+                                          }))
           }
+        case np @ Commands.NewProject(_, _, _) =>
+          val http: Http[IO] = ???
+          new NewProjectProgram(http).run(np)
+
       })
       .map(_.as(ExitCode.Success))
 }

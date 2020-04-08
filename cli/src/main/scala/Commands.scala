@@ -6,6 +6,15 @@ import com.monovore.decline._
 
 object Commands {
 
+  private val localTiffPathOpt =
+    Opts.argument[String]("TIFF_ABSOLUTE_PATH")
+
+  private val projectNameOpt =
+    Opts.argument[String]("PROJECT_NAME")
+
+  private val refreshTokenOpt =
+    Opts.argument[String]("REFRESH_TOKEN")
+
   private val userOpt =
     Opts.option[String]("user", help = "Person to greet.").withDefault("world")
 
@@ -23,6 +32,12 @@ object Commands {
       sad: Boolean
   )
 
+  case class NewProject(
+      projectName: String,
+      tiffPath: String,
+      refreshToken: String
+  )
+
   val helloOpts: Opts[SayHello] =
     Opts.subcommand("hello", "Say hello") {
       (userOpt, quietOpt).mapN(SayHello)
@@ -33,4 +48,8 @@ object Commands {
       (userOpt, sadOpt).mapN(SayGoodbye)
     }
 
+  val uploadTiffOpts: Opts[NewProject] =
+    Opts.subcommand("new-project", "Upload an image to a new Raster Foundry project") {
+      (projectNameOpt, localTiffPathOpt, refreshTokenOpt).mapN(NewProject)
+    }
 }
