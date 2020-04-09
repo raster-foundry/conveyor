@@ -5,12 +5,10 @@ import com.rasterfoundry.datamodel.{Project, Upload, UploadStatus}
 import cats.effect.Async
 import cats.implicits._
 import io.circe.syntax._
-import sttp.client.{Empty, NothingT, RequestT, SttpBackend}
-import sttp.client.circe._
-import sttp.model.{Uri, UriInterpolator}
+import com.softwaremill.sttp.{Empty, RequestT, SttpBackend, Uri}
+import com.softwaremill.sttp.circe._
 
 import java.nio.file.{Files, Paths}
-import java.time.Instant
 
 trait Http[F[_]] {
 
@@ -27,13 +25,12 @@ trait Http[F[_]] {
   def completeUpload(upload: Upload, uploadLocation: Uri): F[Option[Upload]]
 }
 
-class LiveHttp[F[_]: Async](client: RequestT[Empty, Either[String, String], Nothing], refreshToken: String)(
-    implicit backend: SttpBackend[F, Nothing, NothingT]
-) extends Http[F]
-    with UriInterpolator {
+class LiveHttp[F[_]: Async](client: RequestT[Empty, String, Nothing], refreshToken: String)(
+    implicit backend: SttpBackend[F, Nothing]
+) extends Http[F] {
 
   private def uriFor(apiPath: String): Uri =
-    uri"https://app.rasterfoundry.com/api/$apiPath"
+    Uri(java.net.URI.create(s"https://app.rasterfoundry.com/api/$apiPath"))
 
   private def uriToS3Protocol(uri: Uri): Option[String] = {
     val bucketE = uri.host.split(".").headOption
@@ -45,16 +42,13 @@ class LiveHttp[F[_]: Async](client: RequestT[Empty, Either[String, String], Noth
 
   private val memoizedJWTFetch: F[F[TokenResponse]] = Async.memoize(getJWT(refreshToken))
 
-  private def authedClient: F[RequestT[Empty, Either[String, String], Nothing]] =
+  private def authedClient: F[RequestT[Empty, String, Nothing]] =
     for {
       jwtFetch <- memoizedJWTFetch
       jwt      <- jwtFetch
     } yield client.auth.bearer(jwt.idToken)
 
   def getJWT(refreshToken: String): F[TokenResponse] = {
-    // TODO remove this println once you confirm that memoization is behaving
-    // as expected
-    println(s"Fetching JWT at ${Instant.now}")
     client
       .post(uriFor("tokens"))
       .body(Map("refresh_token" -> refreshToken).asJson)

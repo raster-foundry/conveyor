@@ -8,7 +8,7 @@ import cats.implicits._
 import com.rasterfoundry.datamodel.FileType
 import com.rasterfoundry.datamodel.UploadType
 import io.circe.syntax._
-import sttp.model.Uri
+import com.softwaremill.sttp.Uri
 
 import java.util.UUID
 
@@ -20,7 +20,7 @@ class NewProjectProgram(http: Http[IO]) {
       FileType.Geotiff,
       UploadType.S3,
       Nil,
-      UUID.randomUUID,
+      UUID.fromString("221336ed-a24c-449c-86ff-84239d1dd7e8"),
       ().asJson,
       None,
       Visibility.Private,
@@ -49,11 +49,8 @@ class NewProjectProgram(http: Http[IO]) {
       project <- http.createProject(projectCreate)
       upload  <- http.createUpload(getUploadCreate(project))
       putUrl  <- http.getUploadDestination(upload)
-      result <- IO.fromEither(
-        Uri.parse(putUrl.signedUrl).leftMap(s => new Exception(s))
-      ) flatMap { uploadUri =>
-        http.uploadTiff(projectOpts.tiffPath, uploadUri) *> http.completeUpload(upload, uploadUri)
-      }
+      uploadUri = Uri(putUrl.signedUrl)
+      result <- http.uploadTiff(projectOpts.tiffPath, uploadUri) *> http.completeUpload(upload, uploadUri)
     } yield {
       println(s"Program result was: ${result map { _.uploadStatus }}")
     }).recoverWith({

@@ -4,15 +4,15 @@ ThisBuild / scalaVersion := "2.12.11"
 
 val DeclineVersion       = "1.0.0"
 val RasterFoundryVersion = "1.40.3"
-val SttpVersion          = "2.0.7"
+val SttpVersion          = "1.5.19"
 
 val cliDependencies = List(
-  "com.monovore"                 %% "decline"                        % DeclineVersion,
-  "com.monovore"                 %% "decline-effect"                 % DeclineVersion,
-  "com.rasterfoundry"            %% "datamodel"                      % RasterFoundryVersion,
-  "com.softwaremill.sttp.client" %% "async-http-client-backend-cats" % SttpVersion,
-  "com.softwaremill.sttp.client" %% "circe"                          % SttpVersion,
-  "com.softwaremill.sttp.client" %% "core"                           % SttpVersion
+  "com.monovore"          %% "decline"                        % DeclineVersion,
+  "com.monovore"          %% "decline-effect"                 % DeclineVersion,
+  "com.rasterfoundry"     %% "datamodel"                      % RasterFoundryVersion,
+  "com.softwaremill.sttp" %% "async-http-client-backend-cats" % SttpVersion,
+  "com.softwaremill.sttp" %% "circe"                          % SttpVersion,
+  "com.softwaremill.sttp" %% "core"                           % SttpVersion
 )
 
 lazy val cli = (project in file("./cli"))
