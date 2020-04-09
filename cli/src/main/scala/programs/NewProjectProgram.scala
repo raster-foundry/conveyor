@@ -52,10 +52,8 @@ class NewProjectProgram(http: Http[IO]) {
       putUrl  <- http.getUploadDestination(upload)
       uploadUri = Uri(URI.create(putUrl.signedUrl))
       _ <- http.uploadTiff(projectOpts.tiffPath, uploadUri)
-      result <- http.completeUpload(upload, uploadUri)
-    } yield {
-      println(s"Program result was: ${result map { _.uploadStatus }}")
-    }).recoverWith({
+      _ <- http.completeUpload(upload, uploadUri)
+    } yield ()).recoverWith({
       case err => IO { println(err.getMessage) }
     })
   }

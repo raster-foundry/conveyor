@@ -22,7 +22,7 @@ trait Http[F[_]] {
 
   def uploadTiff(localPath: String, uri: Uri): F[Unit]
 
-  def completeUpload(upload: Upload, uploadLocation: Uri): F[Option[Upload]]
+  def completeUpload(upload: Upload, uploadLocation: Uri): F[Unit]
 }
 
 class LiveHttp[F[_]: Async](client: RequestT[Empty, String, Nothing], refreshToken: String)(
@@ -101,7 +101,7 @@ class LiveHttp[F[_]: Async](client: RequestT[Empty, String, Nothing], refreshTok
   def completeUpload(
       upload: Upload,
       uploadLocation: Uri
-  ): F[Option[Upload]] = {
+  ): F[Unit] = {
     val newFilesO = uriToS3Protocol(uploadLocation) map { List(_) }
     println(newFilesO)
     val newUploadO = newFilesO map { newFiles =>
@@ -111,7 +111,7 @@ class LiveHttp[F[_]: Async](client: RequestT[Empty, String, Nothing], refreshTok
       )
     }
 
-    newUploadO traverse { (update: Upload) =>
+    (newUploadO traverse { (update: Upload) =>
       for {
         authed <- authedClient
         result <- authed
@@ -121,6 +121,6 @@ class LiveHttp[F[_]: Async](client: RequestT[Empty, String, Nothing], refreshTok
           .send()
           .decode
       } yield result
-    }
+    }).void
   }
 }
