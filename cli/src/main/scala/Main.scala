@@ -4,10 +4,8 @@ import com.rasterfoundry.conveyor.programs.NewProjectProgram
 
 import cats.effect._
 import cats.implicits._
-
 import com.monovore.decline._
 import com.monovore.decline.effect._
-
 import com.softwaremill.sttp
 import com.softwaremill.sttp.asynchttpclient.cats.AsyncHttpClientCatsBackend
 
@@ -24,7 +22,6 @@ object HelloWorld
       .map({
         case np @ Commands.NewProject(_, _, token) =>
           val http: Http[IO] = new LiveHttp[IO](sttp.emptyRequest, token)
-          new NewProjectProgram(http).run(np)
+          new NewProjectProgram(http).run(np).as(ExitCode.Success)
       })
-      .map(_.as(ExitCode.Success))
 }
