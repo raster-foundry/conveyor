@@ -33,10 +33,10 @@ class LiveHttp[F[_]: Async](client: RequestT[Empty, String, Nothing], refreshTok
     Uri(java.net.URI.create(s"https://app.rasterfoundry.com/api/$apiPath"))
 
   private def uriToS3Protocol(uri: Uri): Option[String] = {
-    val bucketE = uri.host.split(".").headOption
+    val bucketE = uri.host.split('.').headOption
     val key     = uri.path
     bucketE map { bucket =>
-      s"s3://$bucket$key"
+      s"""s3://$bucket/${key.mkString("/")}"""
     }
   }
 
@@ -87,7 +87,7 @@ class LiveHttp[F[_]: Async](client: RequestT[Empty, String, Nothing], refreshTok
     for {
       authed <- authedClient
       putUrl <- authed
-        .get(uriFor(s"uploads/${upload.id}"))
+        .get(uriFor(s"uploads/${upload.id}/signed-url"))
         .response(asJson[Upload.PutUrl])
         .send()
         .decode
@@ -103,7 +103,7 @@ class LiveHttp[F[_]: Async](client: RequestT[Empty, String, Nothing], refreshTok
       uploadLocation: Uri
   ): F[Option[Upload]] = {
     val newFilesO = uriToS3Protocol(uploadLocation) map { List(_) }
-
+    println(newFilesO)
     val newUploadO = newFilesO map { newFiles =>
       upload.copy(
         uploadStatus = UploadStatus.Uploaded,

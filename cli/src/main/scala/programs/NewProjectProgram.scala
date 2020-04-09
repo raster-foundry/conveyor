@@ -10,6 +10,7 @@ import com.rasterfoundry.datamodel.UploadType
 import io.circe.syntax._
 import com.softwaremill.sttp.Uri
 
+import java.net.URI
 import java.util.UUID
 
 class NewProjectProgram(http: Http[IO]) {
@@ -18,8 +19,8 @@ class NewProjectProgram(http: Http[IO]) {
     Upload.Create(
       UploadStatus.Created,
       FileType.Geotiff,
-      UploadType.S3,
-      Nil,
+      UploadType.Local,
+      List("placeholder"),
       UUID.fromString("221336ed-a24c-449c-86ff-84239d1dd7e8"),
       ().asJson,
       None,
@@ -49,8 +50,9 @@ class NewProjectProgram(http: Http[IO]) {
       project <- http.createProject(projectCreate)
       upload  <- http.createUpload(getUploadCreate(project))
       putUrl  <- http.getUploadDestination(upload)
-      uploadUri = Uri(putUrl.signedUrl)
-      result <- http.uploadTiff(projectOpts.tiffPath, uploadUri) *> http.completeUpload(upload, uploadUri)
+      uploadUri = Uri(URI.create(putUrl.signedUrl))
+      _ <- http.uploadTiff(projectOpts.tiffPath, uploadUri)
+      result <- http.completeUpload(upload, uploadUri)
     } yield {
       println(s"Program result was: ${result map { _.uploadStatus }}")
     }).recoverWith({
