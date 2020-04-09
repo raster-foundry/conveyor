@@ -11,6 +11,7 @@ val cliDependencies = List(
   "com.monovore"                 %% "decline-effect"                 % DeclineVersion,
   "com.rasterfoundry"            %% "datamodel"                      % RasterFoundryVersion,
   "com.softwaremill.sttp.client" %% "async-http-client-backend-cats" % SttpVersion,
+  "com.softwaremill.sttp.client" %% "circe"                          % SttpVersion,
   "com.softwaremill.sttp.client" %% "core"                           % SttpVersion
 )
 
@@ -27,5 +28,7 @@ lazy val cli = (project in file("./cli"))
       Resolver.file("local", file(Path.userHome.absolutePath + "/.ivy2/local"))(
         Resolver.ivyStylePatterns
       )
-    )
+    ),
+    addCompilerPlugin("org.spire-math" %% "kind-projector"     % "0.9.6"),
+    addCompilerPlugin("com.olegpy"     %% "better-monadic-for" % "0.2.4")
   )

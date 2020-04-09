@@ -8,6 +8,8 @@ import cats.implicits._
 import com.rasterfoundry.datamodel.FileType
 import com.rasterfoundry.datamodel.UploadType
 import io.circe.syntax._
+import sttp.model.Uri
+
 import java.util.UUID
 
 class NewProjectProgram(http: Http[IO]) {
@@ -44,13 +46,17 @@ class NewProjectProgram(http: Http[IO]) {
       None
     )
     (for {
-      jwt       <- http.getJWT(projectOpts.refreshToken)
-      project   <- http.createProject(projectCreate, jwt)
-      upload    <- http.createUpload(getUploadCreate(project), jwt)
-      uploadUri <- http.getUploadDestination(upload, jwt)
-      _         <- http.uploadTiff(projectOpts.tiffPath, uploadUri)
-      _         <- http.completeUpload(upload, uploadUri, jwt)
-    } yield ()).recoverWith({
+      project <- http.createProject(projectCreate)
+      upload  <- http.createUpload(getUploadCreate(project))
+      putUrl  <- http.getUploadDestination(upload)
+      result <- IO.fromEither(
+        Uri.parse(putUrl.signedUrl).leftMap(s => new Exception(s))
+      ) flatMap { uploadUri =>
+        http.uploadTiff(projectOpts.tiffPath, uploadUri) *> http.completeUpload(upload, uploadUri)
+      }
+    } yield {
+      println(s"Program result was: ${result map { _.uploadStatus }}")
+    }).recoverWith({
       case err => IO { println(err.getMessage) }
     })
   }

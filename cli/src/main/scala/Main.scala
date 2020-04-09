@@ -8,6 +8,9 @@ import cats.implicits._
 import com.monovore.decline._
 import com.monovore.decline.effect._
 
+import sttp.client.{basicRequest}
+import sttp.client.asynchttpclient.cats.AsyncHttpClientCatsBackend
+
 object HelloWorld
     extends CommandIOApp(
       name = "conveyor",
@@ -15,7 +18,7 @@ object HelloWorld
     ) {
 
   override def main: Opts[IO[ExitCode]] =
-    (Commands.helloOpts orElse Commands.goodbyeOpts)
+    (Commands.helloOpts orElse Commands.goodbyeOpts orElse Commands.uploadTiffOpts)
       .map({
         case Commands.SayHello(user, quiet) =>
           IO {
@@ -31,10 +34,12 @@ object HelloWorld
                                             ""
                                           }))
           }
-        case np @ Commands.NewProject(_, _, _) =>
-          val http: Http[IO] = ???
-          new NewProjectProgram(http).run(np)
+        case np @ Commands.NewProject(_, _, token) =>
+          AsyncHttpClientCatsBackend[IO]() flatMap { backend =>
+            val http: Http[IO] = new LiveHttp[IO](basicRequest, token) (implicitly[Async[IO]], backend)
+            new NewProjectProgram(http).run(np)
 
+          }
       })
       .map(_.as(ExitCode.Success))
 }
