@@ -20,7 +20,7 @@ object HelloWorld
   override def main: Opts[IO[ExitCode]] =
     Commands.uploadTiffOpts
       .map({
-        case np @ Commands.NewProject(_, _, token) =>
+        case np @ Commands.NewProject(_, _, token, _) =>
           val http: Http[IO] = new LiveHttp[IO](sttp.emptyRequest, token)
           new NewProjectProgram(http).run(np).as(ExitCode.Success)
       })

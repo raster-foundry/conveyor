@@ -13,13 +13,13 @@ import java.util.UUID
 
 class NewProjectProgram(http: Http[IO]) {
 
-  private def getUploadCreate(project: Project): Upload.Create =
+  private def getUploadCreate(project: Project, datasourceId: UUID): Upload.Create =
     Upload.Create(
       UploadStatus.Created,
       FileType.Geotiff,
       UploadType.Local,
       List("placeholder"),
-      UUID.fromString("e4d1b0a0-99ee-493d-8548-53df8e20d2aa"),
+      datasourceId,
       ().asJson,
       None,
       Visibility.Private,
@@ -46,7 +46,7 @@ class NewProjectProgram(http: Http[IO]) {
     )
     (for {
       project     <- http.createProject(projectCreate)
-      upload      <- http.createUpload(getUploadCreate(project))
+      upload      <- http.createUpload(getUploadCreate(project, projectOpts.datasourceId))
       credentials <- http.getUploadCredentials(upload)
       _           <- http.uploadTiff(projectOpts.tiffPath, credentials)
       _           <- http.completeUpload(upload, credentials.bucketPath)
