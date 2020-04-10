@@ -8,9 +8,7 @@ import cats.implicits._
 import com.rasterfoundry.datamodel.FileType
 import com.rasterfoundry.datamodel.UploadType
 import io.circe.syntax._
-import com.softwaremill.sttp.Uri
 
-import java.net.URI
 import java.util.UUID
 
 class NewProjectProgram(http: Http[IO]) {
@@ -47,12 +45,11 @@ class NewProjectProgram(http: Http[IO]) {
       None
     )
     (for {
-      project <- http.createProject(projectCreate)
-      upload  <- http.createUpload(getUploadCreate(project))
-      putUrl  <- http.getUploadDestination(upload)
-      uploadUri = Uri(URI.create(putUrl.signedUrl))
-      _ <- http.uploadTiff(projectOpts.tiffPath, uploadUri)
-      _ <- http.completeUpload(upload, uploadUri)
+      project     <- http.createProject(projectCreate)
+      upload      <- http.createUpload(getUploadCreate(project))
+      credentials <- http.getUploadCredentials(upload)
+      _           <- http.uploadTiff(projectOpts.tiffPath, credentials)
+      _           <- http.completeUpload(upload, credentials.bucketPath)
     } yield ()).recoverWith({
       case err => IO { println(err.getMessage) }
     })

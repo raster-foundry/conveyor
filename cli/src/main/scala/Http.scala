@@ -2,13 +2,18 @@ package com.rasterfoundry.conveyor
 
 import com.rasterfoundry.datamodel.{Project, Upload, UploadStatus}
 
-import cats.effect.Async
+import cats.effect.{Async, Sync}
 import cats.implicits._
+import com.amazonaws.auth.AWSStaticCredentialsProvider
+import com.amazonaws.regions.Regions
+import com.amazonaws.services.s3.AmazonS3ClientBuilder
+import com.amazonaws.services.s3.transfer.TransferManagerBuilder
 import io.circe.syntax._
 import com.softwaremill.sttp.{Empty, RequestT, SttpBackend, Uri}
 import com.softwaremill.sttp.circe._
 
-import java.nio.file.{Files, Paths}
+import java.io.File
+import java.net.URI
 
 trait Http[F[_]] {
 
@@ -18,25 +23,26 @@ trait Http[F[_]] {
 
   def createUpload(uploadCreate: Upload.Create): F[Upload]
 
-  def getUploadDestination(upload: Upload): F[Upload.PutUrl]
+  def getUploadCredentials(upload: Upload): F[CredentialsWithBucketPath]
 
-  def uploadTiff(localPath: String, uri: Uri): F[Unit]
+  def uploadTiff(localPath: String, credentials: CredentialsWithBucketPath): F[Unit]
 
-  def completeUpload(upload: Upload, uploadLocation: Uri): F[Unit]
+  def completeUpload(upload: Upload, uploadLocation: String): F[Unit]
 }
 
-class LiveHttp[F[_]: Async](client: RequestT[Empty, String, Nothing], refreshToken: String)(
+class LiveHttp[F[_]: Async: Sync](client: RequestT[Empty, String, Nothing], refreshToken: String)(
     implicit backend: SttpBackend[F, Nothing]
 ) extends Http[F] {
 
   private def uriFor(apiPath: String): Uri =
     Uri(java.net.URI.create(s"https://app.rasterfoundry.com/api/$apiPath"))
 
-  private def uriToS3Protocol(uri: Uri): Option[String] = {
-    val bucketE = uri.host.split('.').headOption
-    val key     = uri.path
-    bucketE map { bucket =>
-      s"""s3://$bucket/${key.mkString("/")}"""
+  private def uriToS3Protocol(s3Url: String): Option[(String, String)] = {
+    val s3Uri = Uri(URI.create(s3Url))
+    val bucketO = s3Uri.host.split('.').headOption
+    val key     = s3Uri.path.mkString("/")
+    bucketO map { bucket =>
+      (bucket, key)
     }
   }
 
@@ -83,27 +89,53 @@ class LiveHttp[F[_]: Async](client: RequestT[Empty, String, Nothing], refreshTok
         .decode
     } yield upload
 
-  def getUploadDestination(upload: Upload): F[Upload.PutUrl] =
+  def getUploadCredentials(upload: Upload): F[CredentialsWithBucketPath] =
     for {
       authed <- authedClient
-      putUrl <- authed
-        .get(uriFor(s"uploads/${upload.id}/signed-url"))
-        .response(asJson[Upload.PutUrl])
+      credentials <- authed
+        .get(uriFor(s"uploads/${upload.id}/credentials"))
+        .response(asJson[CredentialsWithBucketPath])
         .send()
+        .map { r =>
+          println(r)
+          r
+        }
         .decode
-    } yield putUrl
+    } yield {
+      println("Got credentials!")
+      credentials
+    }
 
-  def uploadTiff(localPath: String, uri: Uri): F[Unit] = {
-    val byteArray = Files.readAllBytes(Paths.get(localPath))
-    client.put(uri).body(byteArray).send().void
+  def uploadTiff(filePath: String, credentials: CredentialsWithBucketPath): F[Unit] = {
+    val clientRegion        = Regions.US_EAST_1
+    val Some((bucket, key)) = uriToS3Protocol(credentials.bucketPath)
+    Sync[F].delay {
+      println("Creating client")
+      val s3Client = AmazonS3ClientBuilder
+        .standard()
+        .withRegion(clientRegion)
+        .withCredentials(new AWSStaticCredentialsProvider(credentials.credentials))
+        .build()
+      println("Creating transfer manager")
+      val tm = TransferManagerBuilder
+        .standard()
+        .withS3Client(s3Client)
+        .build()
+      println("Creating upload")
+      val upload = tm.upload(bucket, key, new File(filePath))
+      upload.waitForCompletion()
+      println("Upload to AWS complete")
+    }
   }
 
   def completeUpload(
       upload: Upload,
-      uploadLocation: Uri
+      uploadLocation: String
   ): F[Unit] = {
-    val newFilesO = uriToS3Protocol(uploadLocation) map { List(_) }
-    println(newFilesO)
+    val newFilesO = uriToS3Protocol(uploadLocation) map {
+      case (bucket, key) => List(s"s3://$bucket/$key")
+    }
+    println(s"New files: $newFilesO")
     val newUploadO = newFilesO map { newFiles =>
       upload.copy(
         uploadStatus = UploadStatus.Uploaded,
