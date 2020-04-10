@@ -96,13 +96,8 @@ class LiveHttp[F[_]: Async: Sync](client: RequestT[Empty, String, Nothing], refr
         .get(uriFor(s"uploads/${upload.id}/credentials"))
         .response(asJson[CredentialsWithBucketPath])
         .send()
-        .map { r =>
-          println(r)
-          r
-        }
         .decode
     } yield {
-      println("Got credentials!")
       credentials
     }
 
@@ -110,21 +105,18 @@ class LiveHttp[F[_]: Async: Sync](client: RequestT[Empty, String, Nothing], refr
     val clientRegion        = Regions.US_EAST_1
     val Some((bucket, key)) = uriToS3Protocol(credentials.bucketPath)
     Sync[F].delay {
-      println("Creating client")
       val s3Client = AmazonS3ClientBuilder
         .standard()
         .withRegion(clientRegion)
         .withCredentials(new AWSStaticCredentialsProvider(credentials.credentials))
         .build()
-      println("Creating transfer manager")
       val tm = TransferManagerBuilder
         .standard()
         .withS3Client(s3Client)
         .build()
-      println("Creating upload")
       val upload = tm.upload(bucket, key, new File(filePath))
+      println("Waiting for upload completion")
       upload.waitForCompletion()
-      println("Upload to AWS complete")
     }
   }
 
@@ -135,7 +127,6 @@ class LiveHttp[F[_]: Async: Sync](client: RequestT[Empty, String, Nothing], refr
     val newFilesO = uriToS3Protocol(uploadLocation) map {
       case (bucket, key) => List(s"s3://$bucket/$key")
     }
-    println(s"New files: $newFilesO")
     val newUploadO = newFilesO map { newFiles =>
       upload.copy(
         uploadStatus = UploadStatus.Uploaded,

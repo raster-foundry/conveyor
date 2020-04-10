@@ -19,7 +19,7 @@ class NewProjectProgram(http: Http[IO]) {
       FileType.Geotiff,
       UploadType.Local,
       List("placeholder"),
-      UUID.fromString("221336ed-a24c-449c-86ff-84239d1dd7e8"),
+      UUID.fromString("e4d1b0a0-99ee-493d-8548-53df8e20d2aa"),
       ().asJson,
       None,
       Visibility.Private,
