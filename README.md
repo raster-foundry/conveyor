@@ -37,7 +37,7 @@ $ docker run \
     "Test project" \
     /opt/data/upload.tif \
     "refresh-token" \
-    --datasource=001d8582-376b-4d18-a93e-01ffe8fb0da8
+    --datasource=001d8582-376b-4d18-a93e-01ffe8fb0da8 # replace with a real datasource ID if desired
 ```
 
 ## Obtaining a refresh token
