@@ -9,7 +9,7 @@ import com.monovore.decline.effect._
 import com.softwaremill.sttp
 import com.softwaremill.sttp.asynchttpclient.cats.AsyncHttpClientCatsBackend
 
-object HelloWorld
+object Conveyor
     extends CommandIOApp(
       name = "conveyor",
       header = "Upload a tif to a Raster Foundry project"
