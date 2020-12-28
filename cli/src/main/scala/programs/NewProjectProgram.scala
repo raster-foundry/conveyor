@@ -50,6 +50,7 @@ class NewProjectProgram(http: Http[IO]) {
       credentials <- http.getUploadCredentials(upload)
       _           <- http.uploadTiff(projectOpts.tiffPath, credentials)
       _           <- http.completeUpload(upload, credentials.bucketPath)
+      ()          <- IO { println("--------------\nUpload complete. Press ctrl+c at any time.\n--------------") }
     } yield ()).recoverWith({
       case err => IO { println(err.getMessage) }
     })
