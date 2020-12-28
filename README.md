@@ -40,6 +40,10 @@ $ docker run \
     --datasource=001d8582-376b-4d18-a93e-01ffe8fb0da8 # replace with a real datasource ID if desired
 ```
 
+Due to some kind of poorly understood behavior with connection channels,
+the program won't exit on its own, but you can `ctrl+c` it to kill
+it once you've seen `Waiting for upload completion` and `exhausted input` in the logs.
+
 ## Obtaining a refresh token
 
 To obtain a refresh token, follow instructions on the Raster Foundry [help page](https://help.rasterfoundry.com/en/articles/777804-generating-a-refresh-token-in-order-to-use-the-api).
