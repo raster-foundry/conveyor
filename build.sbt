@@ -3,7 +3,7 @@ ThisBuild / organization := "com.rasterfoundry"
 ThisBuild / scalaVersion := "2.12.11"
 
 val AWSSdkVersion        = "1.11.535"
-val DeclineVersion       = "1.0.0"
+val DeclineVersion       = "1.3.0"
 val RasterFoundryVersion = "1.40.3"
 val SttpVersion          = "1.5.19"
 
